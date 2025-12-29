@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Travel Recommendation</title>
+
+    <!-- Link your JS file (for fetch/search results logic) -->
+    <script src="travel_recommendation.js" defer></script>
+
+    <style>
+      :root {
+        --nav-h: 64px; /* Navbar height */
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f7f7f7;
+      }
+
+      /* --------------------------
+         "PAGES" (Home/About/Contact)
+         Only ONE is visible at a time.
+      --------------------------- */
+
+      .page {
+        /* hidden by default */
+        display: none;
+
+        /* behave like a separate page view */
+        position: fixed;
+        top: var(--nav-h);
+        left: 0;
+        right: 0;
+        bottom: 0;
+
+        overflow-y: auto; /* scroll if content is long */
+        background: #f7f7f7;
+      }
+
+      /* Default page if no hash in URL */
+      #home {
+        display: block;
+      }
+
+      /* If About or Contact is targeted, show it */
+      #about:target,
+      #contact:target,
+      #home:target {
+        display: block;
+      }
+
+      /* When About or Contact is active, hide Home (Home appears later in HTML) */
+      #about:target ~ #home,
+      #contact:target ~ #home {
+        display: none;
+      }
+
+      /* --------------------------
+         NAVBARS (2 versions)
+         - Home navbar includes search
+         - About/Contact navbar does NOT
+         Navbars are placed AFTER pages so :target can control them using ~
+      --------------------------- */
+
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--nav-h);
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        padding: 0 20px;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e5e5;
+        z-index: 10;
+      }
+
+      .nav a {
+        text-decoration: none;
+        color: #222;
+        font-weight: 600;
+      }
+
+      /* Search form styles (Home navbar only) */
+      .nav form {
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .nav input {
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        width: 220px;
+      }
+
+      .nav button {
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #f3f3f3;
+      }
+
+      /* Default: show home navbar, hide simple navbar */
+      .nav-home {
+        display: flex;
+      }
+
+      .nav-simple {
+        display: none;
+      }
+
+      /* On About/Contact: hide home navbar, show simple navbar */
+      #about:target ~ .nav-home,
+      #contact:target ~ .nav-home {
+        display: none;
+      }
+
+      #about:target ~ .nav-simple,
+      #contact:target ~ .nav-simple {
+        display: flex;
+      }
+
+      /* On Home: show home navbar, hide simple navbar */
+      #home:target ~ .nav-home {
+        display: flex;
+      }
+
+      #home:target ~ .nav-simple {
+        display: none;
+      }
+
+      /* --------------------------
+         HOME HERO (background image + intro)
+      --------------------------- */
+
+      .hero {
+        min-height: calc(100vh - var(--nav-h));
+        background-image: url("images/background.jpg"); /* update this path */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .hero .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+      }
+
+      .hero .content {
+        position: relative;
+        max-width: 800px;
+        color: white;
+        text-align: center;
+        padding: 30px;
+        border-radius: 12px;
+      }
+
+      /* --------------------------
+         Shared layout for About/Contact + results
+      --------------------------- */
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 30px 20px;
+        box-sizing: border-box;
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        padding: 22px;
+        margin-bottom: 18px;
+      }
+
+      .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-top: 14px;
+      }
+
+      .member {
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      /* Contact form */
+      .contact-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      textarea {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 14px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+
+      .submit-btn {
+        padding: 10px 14px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        background: #222;
+        color: #fff;
+        width: fit-content;
+      }
+
+      /* Optional: Results layout (used by your JS) */
+      #results {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .result-card {
+        background: #fff;
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .result-card img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ABOUT "PAGE" -->
+    <section id="about" class="page">
+      <div class="container">
+        <div class="card">
+          <h2>About Us</h2>
+          <p>
+            Travel Recommendation is a travel discovery website designed to help users
+            find destinations based on their preferences and interests. Our mission is
+            to make travel planning simple, quick, and enjoyable.
+          </p>
+          <p>
+            We provide curated recommendations and a smooth browsing experience so you
+            can spend less time searching and more time traveling.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Meet the Team</h3>
+          <div class="team-grid">
+            <div class="member">
+              <h4>Ali Khan</h4>
+              <p>Founder &amp; Product Lead</p>
+            </div>
+            <div class="member">
+              <h4>Sara Ahmed</h4>
+              <p>Frontend Developer</p>
+            </div>
+            <div class="member">
+              <h4>Hamza Malik</h4>
+              <p>Backend Developer</p>
+            </div>
+            <div class="member">
+              <h4>Ayesha Noor</h4>
+              <p>Content &amp; Research</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT "PAGE" -->
+    <section id="contact" class="page">
+      <div class="container">
+        <div class="card">
+          <h2>Contact Us</h2>
+          <p>If you have any questions, feel free to send us a message below.</p>
+
+          <form class="contact-form">
+            <div>
+              <label for="name">Name</label>
+              <input id="name" type="text" name="name" placeholder="Enter your name" required />
+            </div>
+
+            <div>
+              <label for="email">Email</label>
+              <input id="email" type="email" name="email" placeholder="Enter your email" required />
+            </div>
+
+            <div>
+              <label for="message">Message</label>
+              <textarea
+                id="message"
+                name="message"
+                placeholder="Write your message here..."
+                required
+              ></textarea>
+            </div>
+
+            <button class="submit-btn" type="submit">Submit</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOME "PAGE" (keep LAST so About/Contact can hide it using ~ selector) -->
+    <section id="home" class="page">
+      <div class="hero">
+        <div class="overlay"></div>
+        <div class="content">
+          <h1>Welcome to Travel Recommendation</h1>
+          <p>
+            Discover your next adventure with personalized travel suggestions. Search by
+            keywords like “beach”, “mountains”, “city”, or “budget” and we’ll help you
+            find destinations that match your vibe.
+          </p>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="card">
+          <h2>Recommendations</h2>
+          <!-- Your JS will render results here -->
+          <div id="results"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVBARS (placed after pages so :target can toggle them) -->
+
+    <!-- Home navbar (includes search) -->
+    <nav class="nav nav-home">
+      <a href="travel_recommendation.html#home"><strong>Travel Recommendation</strong></a>
+      <a href="travel_recommendation.html#home">Home</a>
+      <a href="travel_recommendation.html#about">About Us</a>
+      <a href="travel_recommendation.html#contact">Contact Us</a>
+
+      <form>
+        <input
+          id="keywordInput"
+          type="text"
+          name="keyword"
+          placeholder="Search recommendations..."
+        />
+        <button id="searchBtn" type="button">Search</button>
+        <button id="resetBtn" type="button">Reset</button>
+      </form>
+    </nav>
+
+    <!-- About/Contact navbar (NO search) -->
+    <nav class="nav nav-simple">
+      <a href="travel_recommendation.html#home"><strong>Travel Recommendation</strong></a>
+      <a href="travel_recommendation.html#home">Home</a>
+      <a href="travel_recommendation.html#about">About Us</a>
+      <a href="travel_recommendation.html#contact">Contact Us</a>
+    </nav>
+  </body>
+</html>
